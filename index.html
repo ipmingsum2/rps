@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Rock Paper Scissors</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      --bg-dark: #06080f;
+      --card-dark: rgba(12, 16, 30, 0.82);
+      --accent: #8f7afe;
+      --accent-2: #60e4ff;
+      --text: #f5f5f5;
+      --muted: rgba(255, 255, 255, 0.7);
+      --glass: rgba(255, 255, 255, 0.08);
+      --glass-strong: rgba(255, 255, 255, 0.15);
+    }
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: radial-gradient(circle at 20% 20%, #1c2146, var(--bg-dark));
+      color: var(--text);
+      padding: 1.25rem;
+      overflow-x: hidden;
+    }
+    body::before,
+    body::after {
+      content: "";
+      position: fixed;
+      width: 120vmax;
+      height: 120vmax;
+      background: conic-gradient(from 90deg, rgba(143, 122, 254, 0.18), rgba(96, 228, 255, 0.18), transparent 70%);
+      filter: blur(120px);
+      z-index: -2;
+      animation: spin 70s linear infinite;
+    }
+    body::after {
+      animation-duration: 110s;
+      animation-direction: reverse;
+    }
+    .card {
+      width: min(460px, 100%);
+      background: var(--card-dark);
+      border-radius: 28px;
+      padding: 2rem 1.75rem 2.25rem;
+      box-shadow: 0 40px 110px rgba(0, 0, 0, 0.55);
+      position: relative;
+      overflow: hidden;
+      isolation: isolate;
+    }
+    .card::after {
+      content: "";
+      position: absolute;
+      inset: -30%;
+      background: radial-gradient(circle, rgba(143, 122, 254, 0.22), transparent 65%);
+      opacity: 0.5;
+      z-index: -1;
+      animation: pulse 6s ease-in-out infinite;
+    }
+    h1 {
+      margin-top: 0;
+      text-align: center;
+      letter-spacing: 2px;
+      font-weight: 700;
+      font-size: 1.8rem;
+      animation: float 4s ease-in-out infinite;
+    }
+    nav {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 0.75rem;
+      margin-bottom: 1.25rem;
+    }
+    button,
+    input {
+      font: inherit;
+      padding: 0.9rem;
+      border-radius: 14px;
+      border: 1px solid transparent;
+      background: var(--glass);
+      color: var(--text);
+      cursor: pointer;
+      transition:
+        transform 0.18s ease,
+        background 0.25s ease,
+        border-color 0.25s ease,
+        box-shadow 0.25s ease,
+        opacity 0.25s ease;
+    }
+    button:hover {
+      background: rgba(143, 122, 254, 0.28);
+      border-color: rgba(143, 122, 254, 0.55);
+      box-shadow: 0 15px 35px rgba(143, 122, 254, 0.35);
+      transform: translateY(-3px) scale(1.03);
+    }
+    button:active {
+      transform: translateY(2px) scale(0.97);
+    }
+    button:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+      box-shadow: none;
+      transform: none;
+    }
+    input {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.2);
+      color: var(--text);
+      caret-color: var(--accent-2);
+    }
+    input:focus {
+      border-color: var(--accent-2);
+      box-shadow: 0 0 0 2px rgba(96, 228, 255, 0.25);
+      outline: none;
+    }
+    .mode-section {
+      display: none;
+      animation: fadeIn 0.35s ease forwards;
+    }
+    .mode-section.active {
+      display: block;
+    }
+    .choices {
+      display: flex;
+      gap: 0.75rem;
+      justify-content: center;
+      margin: 1.3rem 0;
+      flex-wrap: wrap;
+    }
+    .choices button {
+      flex: 1;
+      min-width: 90px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      position: relative;
+      overflow: hidden;
+      isolation: isolate;
+    }
+    .choices button::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at 25% 25%, rgba(143,122,254,0.3), transparent 70%);
+      opacity: 0;
+      transition: opacity 0.28s ease;
+      z-index: -1;
+    }
+    .choices button:hover::before {
+      opacity: 1;
+    }
+    .choices button.selected {
+      border-color: var(--accent-2);
+      box-shadow: 0 0 20px rgba(96, 228, 255, 0.6);
+    }
+    .status {
+      min-height: 3.2rem;
+      text-align: center;
+      font-size: 1rem;
+      color: var(--muted);
+      transition: color 0.3s ease;
+    }
+    .status.highlight {
+      color: var(--accent-2);
+    }
+    .log {
+      font-size: 0.95rem;
+      line-height: 1.5;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 16px;
+      padding: 0.9rem;
+      min-height: 4.5rem;
+      max-height: 13rem;
+      overflow-y: auto;
+      position: relative;
+    }
+    .log-entry {
+      opacity: 0;
+      transform: translateY(10px);
+      animation: entry 0.35s forwards;
+    }
+    .mini-grid {
+      display: grid;
+      gap: 0.45rem;
+      margin: 0.2rem 0 1rem;
+    }
+    label {
+      font-size: 0.9rem;
+      opacity: 0.75;
+    }
+    .glimmer {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(120deg, transparent 30%, rgba(255,255,255,0.25), transparent 70%);
+      transform: translateX(-120%);
+      animation: shimmer 2.8s infinite;
+      pointer-events: none;
+    }
+    .pulse {
+      animation: pulseOne 0.45s ease;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 0.4; transform: scale(1); }
+      50% { opacity: 0.8; transform: scale(1.15); }
+    }
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-8px); }
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes entry {
+      to { opacity: 1; transform: translateY(0); }
+       }
+    @keyframes shimmer {
+      0% { transform: translateX(-120%); }
+      40% { transform: translateX(120%); }
+      100% { transform: translateX(120%); }
+    }
+    @keyframes pulseOne {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.08); }
+      100% { transform: scale(1); }
+    }
+    @media (max-width: 480px) {
+      .card {
+        padding: 1.4rem 1.1rem 1.8rem;
+        border-radius: 22px;
+      }
+      nav {
+        grid-template-columns: 1fr;
+      }
+      .choices button {
+        flex: 1 1 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="glimmer"></div>
+    <h1>✊ ✋ ✌️ Rock • Paper • Scissors</h1>
+    <nav>
+      <button id="singleTab">Single Player</button>
+      <button id="multiTab">Multiplayer</button>
+    </nav>
+
+    <section id="singleSection" class="mode-section active">
+      <div class="status" id="singleStatus">Play against the bot!</div>
+      <div class="choices" id="singleChoices">
+        <button data-choice="rock">Rock</button>
+        <button data-choice="paper">Paper</button>
+        <button data-choice="scissors">Scissors</button>
+      </div>
+      <div class="log" id="singleLog"></div>
+    </section>
+
+    <section id="multiSection" class="mode-section">
+      <div class="mini-grid">
+        <label for="playerName">Player Name</label>
+        <input id="playerName" placeholder="Enter a nickname" />
+        <label for="roomId">Room ID</label>
+        <input id="roomId" placeholder="e.g., alpha123" />
+      </div>
+      <div class="choices" style="margin-top:0.2rem">
+        <button id="joinRoomBtn">Join Room</button>
+        <button id="leaveRoomBtn" disabled>Leave Room</button>
+      </div>
+      <div class="status" id="multiStatus">Not connected.</div>
+      <div class="choices" id="multiChoices">
+        <button data-multi-choice="rock" disabled>Rock</button>
+        <button data-multi-choice="paper" disabled>Paper</button>
+        <button data-multi-choice="scissors" disabled>Scissors</button>
+      </div>
+      <div class="log" id="multiLog"></div>
+    </section>
+  </div>
+
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"
+    integrity="sha384-vve5AO9M/dwZ0pniS3pSkeCZMt2rt7NmBGG99nmCaTKty+PBkO5RAwOB1p5MNDoP"
+    crossorigin="anonymous"></script>
+  <script>
+    const singleTab = document.getElementById('singleTab');
+    const multiTab = document.getElementById('multiTab');
+    const singleSection = document.getElementById('singleSection');
+    the multiSection = document.getElementById('multiSection');
+
+    const statusHighlight = (el, text) => {
+      el.textContent = text;
+      el.classList.add('highlight');
+      setTimeout(() => el.classList.remove('highlight'), 600);
+    };
+
+    singleTab.addEventListener('click', () => {
+      singleSection.classList.add('active');
+      multiSection.classList.remove('active');
+      statusHighlight(singleSection.querySelector('.status'), 'Play against the bot!');
+    });
+
+    multiTab.addEventListener('click', () => {
+      multiSection.classList.add('active');
+      singleSection.classList.remove('active');
+      statusHighlight(multiSection.querySelector('.status'), 'Enter a room ID to start.');
+    });
+
+    const choices = ['rock', 'paper', 'scissors'];
+    const singleStatus = document.getElementById('singleStatus');
+    const singleLog = document.getElementById('singleLog');
+    const singleChoiceButtons = singleSection.querySelectorAll('[data-choice]');
+
+    singleChoiceButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        singleChoiceButtons.forEach(b => b.classList.remove('selected'));
+        btn.classList.add('selected', 'pulse');
+        setTimeout(() => btn.classList.remove('pulse'), 400);
+
+        const playerChoice = btn.dataset.choice;
+        const botChoice = choices[Math.floor(Math.random() * 3)];
+        const outcome = evalRound(playerChoice, botChoice);
+
+        statusHighlight(singleStatus, `You chose ${playerChoice}, bot chose ${botChoice}.`);
+        prependLog(singleLog, `You ${outcome.toUpperCase()}! (You: ${playerChoice}, Bot: ${botChoice})`);
+      });
+    });
+
+    function evalRound(player, opponent) {
+      if (player === opponent) return 'draw';
+      if (
+        (player === 'rock' && opponent === 'scissors') ||
+        (player === 'paper' && opponent === 'rock') ||
+        (player === 'scissors' && opponent === 'paper')
+      ) return 'win';
+      return 'lose';
+    }
+
+    function prependLog(container, text) {
+      const entry = document.createElement('div');
+      entry.className = 'log-entry';
+      entry.textContent = `[${new Date().toLocaleTimeString()}] ${text}`;
+      container.prepend(entry);
+    }
+
+    const socket = io();
+    const playerNameInput = document.getElementById('playerName');
+    const roomIdInput = document.getElementById('roomId');
+    const joinBtn = document.getElementById('joinRoomBtn');
+    const leaveBtn = document.getElementById('leaveRoomBtn');
+    const multiStatus = document.getElementById('multiStatus');
+    const multiLog = document.getElementById('multiLog');
+    const multiChoiceButtons = Array.from(document.querySelectorAll('[data-multi-choice]'));
+    let inRoom = false;
+
+    joinBtn.addEventListener('click', () => {
+      const name = playerNameInput.value.trim() || 'Player';
+      const roomId = roomIdInput.value.trim();
+      if (!roomId) {
+        statusHighlight(multiStatus, 'Please provide a room ID.');
+        return;
+      }
+      socket.emit('join_room', { roomId, name });
+    });
+
+    leaveBtn.addEventListener('click', leaveRoom);
+
+    function leaveRoom() {
+      socket.emit('leave_room');
+      handleLeaveUI('Left room.');
+    }
+
+    function handleJoinUI(message) {
+      inRoom = true;
+      statusHighlight(multiStatus, message);
+      joinBtn.disabled = true;
+      leaveBtn.disabled = false;
+      multiChoiceButtons.forEach(btn => btn.disabled = false);
+    }
+
+    function handleLeaveUI(message) {
+      inRoom = false;
+      statusHighlight(multiStatus, message);
+      joinBtn.disabled = false;
+      leaveBtn.disabled = true;
+      multiChoiceButtons.forEach(btn => {
+        btn.disabled = true;
+        btn.classList.remove('selected');
+      });
+    }
+
+    multiChoiceButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (!inRoom) return;
+        multiChoiceButtons.forEach(b => b.classList.remove('selected'));
+        btn.classList.add('selected', 'pulse');
+        setTimeout(() => btn.classList.remove('pulse'), 400);
+        socket.emit('player_choice', btn.dataset.multiChoice);
+        statusHighlight(multiStatus, `Locked in ${btn.dataset.multiChoice}. Waiting...`);
+      });
+    });
+
+    socket.on('room_state', payload => {
+      handleJoinUI(`Room ${payload.roomId}: ${payload.players.length}/2 players.`);
+      const playersText = payload.players.length
+        ? payload.players.map(p => `• ${p.name} ${p.choice ? '(locked)' : ''}`).join('\n')
+        : 'Waiting for players...';
+      prependLog(multiLog, `Players:\n${playersText}`);
+    });
+
+    socket.on('room_error', msg => {
+      handleLeaveUI(msg);
+      prependLog(multiLog, msg);
+    });
+
+    socket.on('round_result', ({ you, opponent, outcome }) => {
+      const message = `You ${outcome.toUpperCase()}! (You: ${you}, Opponent: ${opponent})`;
+      prependLog(multiLog, message);
+      statusHighlight(multiStatus, `Round result: You ${outcome}.`);
+      multiChoiceButtons.forEach(btn => btn.classList.remove('selected'));
+    });
+
+    socket.on('connect_error', err => {
+      handleLeaveUI('Connection error.');
+      prependLog(multiLog, err.message);
+    });
+
+    window.addEventListener('beforeunload', () => {
+      if (inRoom) socket.emit('leave_room');
+    });
+  </script>
+</body>
+</html>
