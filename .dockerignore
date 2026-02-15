@@ -1,0 +1,9 @@
+# .dockerignore (placed beside the Dockerfile)
+.git
+.gitignore
+node_modules
+cloud/node_modules
+cloud/.env
+public/.env
+*.log
+Dockerfile
