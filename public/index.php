@@ -9,7 +9,7 @@ $socketEndpoint = getenv('SOCKET_IO_ENDPOINT') ?: '';
 $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
 $host = $_SERVER['HTTP_HOST'];
 $scriptName = $_SERVER['SCRIPT_NAME'];
-$redirectUri = $scheme . '://' . $host . $scriptName;
+$redirectUri = $scheme . '://' . $host . $scriptName . '?action=callback';
 
 if (!isset($_SESSION['flash'])) {
     $_SESSION['flash'] = [];
