@@ -9,7 +9,9 @@ $socketEndpoint = getenv('SOCKET_IO_ENDPOINT') ?: '';
 $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
 $host = $_SERVER['HTTP_HOST'];
 $scriptName = $_SERVER['SCRIPT_NAME'];
-$redirectUri = $scheme . '://' . $host . $scriptName . '?action=callback';
+
+$baseUri = $scheme . '://' . $host . $scriptName;
+$callbackUri = $baseUri . '?action=callback';
 
 if (!isset($_SESSION['flash'])) {
     $_SESSION['flash'] = [];
@@ -28,8 +30,8 @@ function getFlash(string $key): ?string {
     return null;
 }
 
-function redirectHome(string $redirectUri): void {
-    header('Location: ' . $redirectUri);
+function redirectHome(string $homeUri): void {
+    header('Location: ' . $homeUri);
     exit;
 }
 
@@ -41,7 +43,7 @@ if (isset($_GET['action'])) {
         $_SESSION['discord_oauth_state'] = $state;
         $params = http_build_query([
             'client_id' => $clientId,
-            'redirect_uri' => $redirectUri,
+            'redirect_uri' => $callbackUri,
             'response_type' => 'code',
             'scope' => 'identify',
             'state' => $state,
@@ -54,11 +56,11 @@ if (isset($_GET['action'])) {
     if ($action === 'callback') {
         if (empty($_GET['code']) || empty($_GET['state'])) {
             setFlash('error', 'Missing OAuth parameters.');
-            redirectHome($redirectUri);
+            redirectHome($baseUri);
         }
         if (empty($_SESSION['discord_oauth_state']) || $_GET['state'] !== $_SESSION['discord_oauth_state']) {
             setFlash('error', 'Invalid OAuth state. Please try again.');
-            redirectHome($redirectUri);
+            redirectHome($baseUri);
         }
         unset($_SESSION['discord_oauth_state']);
 
@@ -68,7 +70,7 @@ if (isset($_GET['action'])) {
             'client_secret' => $clientSecret,
             'grant_type' => 'authorization_code',
             'code' => $code,
-            'redirect_uri' => $redirectUri
+            'redirect_uri' => $callbackUri
         ], '', '&', PHP_QUERY_RFC3986);
 
         $ch = curl_init('https://discord.com/api/oauth2/token');
@@ -84,13 +86,13 @@ if (isset($_GET['action'])) {
 
         if ($tokenResponse === false) {
             setFlash('error', 'Token exchange failed: ' . $tokenError);
-            redirectHome($redirectUri);
+            redirectHome($baseUri);
         }
 
         $tokenData = json_decode($tokenResponse, true);
         if (empty($tokenData['access_token'])) {
             setFlash('error', 'Token exchange returned no access token.');
-            redirectHome($redirectUri);
+            redirectHome($baseUri);
         }
 
         $accessToken = $tokenData['access_token'];
@@ -105,13 +107,13 @@ if (isset($_GET['action'])) {
 
         if ($userResponse === false) {
             setFlash('error', 'Failed to fetch Discord profile: ' . $userError);
-            redirectHome($redirectUri);
+            redirectHome($baseUri);
         }
 
         $userData = json_decode($userResponse, true);
         if (empty($userData['id'])) {
             setFlash('error', 'Discord profile payload missing ID.');
-            redirectHome($redirectUri);
+            redirectHome($baseUri);
         }
 
         $displayName = $userData['global_name'] ?? $userData['username'] ?? 'Player';
@@ -122,13 +124,13 @@ if (isset($_GET['action'])) {
             'display_name' => $displayName
         ];
         setFlash('success', 'Discord login successful. Multiplayer unlocked!');
-        redirectHome($redirectUri);
+        redirectHome($baseUri);
     }
 
     if ($action === 'logout') {
         unset($_SESSION['discord_user']);
         setFlash('success', 'Logged out of Discord.');
-        redirectHome($redirectUri);
+        redirectHome($baseUri);
     }
 }
 
